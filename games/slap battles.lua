@@ -492,7 +492,7 @@ w2:NewToggle("AutoSlapple","",function(cb)
 	if cb then
 		doLoop("slapple",function()
 			for i,v in next, workspace.Arena.island5.Slapples:GetDescendants() do
-				if Instance.ClassName == "TouchTransmitter" then
+				if v.ClassName == "TouchTransmitter" then
 					firetouchinterest(lplr.Character.Head, v.Parent, 1)
 					firetouchinterest(lplr.Character.Head, v.Parent, 0)
 				end
