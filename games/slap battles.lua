@@ -210,46 +210,59 @@ c2:NewToggle("AutoFarm","",function(cb)
 	end
 end)
 local auramode = "Blatant"
-c2:NewDropdown("Mode","", {"Blatant","Sync","Legit"},function(cb)
+c2:NewDropdown("Mode","", {"Blatant","Sync","Legit","Semi-Legit"},function(cb)
 	auramode = cb
 end)
+local doSlapAnim = false
+local waittime = 0.25
+local dodge = false
 c2:NewToggle("Aura","",function(cb)
 	if cb then
 		warn("on")
-		doLoop("aura",function()
+		doLoop("aura",function(delta)
 			aurticks = aurticks + 1
 			--print("looping")
 			for i,plr in next, plrs:GetPlayers() do
 				--warn("players done")
 				--print("went through players")
-				if plr ~= lplr and plr.Character.Head:FindFirstChild("UnoReverseCard") == nil then
+				if plr ~= lplr and plr ~= nil and plr.Character.Head:FindFirstChild("UnoReverseCard") == nil then
 					local dist = (lplr.Character:FindFirstChild("HumanoidRootPart").Position - plr.Character:FindFirstChild("HumanoidRootPart").Position).Magnitude
 					--print("checks passed")
-					if (auramode == "Blatant" and dist <= 25 or auramode == "Sync" and dist <= 25 or auramode == "Legit" and dist <= 9.25) then
+					waittime = 0.25
+					if (auramode == "Blatant" and dist <= 25 or auramode == "Sync" and dist <= 25 or auramode == "Legit" and dist <= 9.25 or auramode == "Semi-Legit" and dist <= 12.45) then
 						local targ = game.Players[plr.Name]
 						if afon then
-							targ = game.Players[aftarget]
+							targ = game.Players[aftarget.Name]
 						end
-						if auramode ~= "Sync" then
-							hit[glove()]:FireServer(targ.Character:FindFirstChild("Head"))
-							if aurticks >= 10 then
-								lplr.Character.Humanoid.Animator:LoadAnimation(game:GetService("ReplicatedStorage").Slap):Play()
-								aurticks = 0
-							end
-						else
-							if aurticks >= 10 then
+						if targ.leaderstats.Glove.Value == "OVERKILL" then
+							waittime = 0.085
+						end
+						if auramode == "Sync" or auramode == "Legit" or auramode == "Semi-Legit" then
+							if doSlapAnim then
 								hit[glove()]:FireServer(targ.Character:FindFirstChild("Torso"))
 								lplr.Character.Humanoid.Animator:LoadAnimation(game:GetService("ReplicatedStorage").Slap):Play()
-								aurticks = 0
+								doSlapAnim = false
+							end
+						else
+							local args = {
+								[1] = targ
+							}
+							game:GetService("ReplicatedStorage"):WaitForChild("SM"):FireServer(unpack(args))
+							hit[glove()]:FireServer(targ.Character:FindFirstChild("Head"))
+							if doSlapAnim then
+								lplr.Character.Humanoid.Animator:LoadAnimation(game:GetService("ReplicatedStorage").Slap):Play()
+								doSlapAnim = false
 							end
 						end
 					end
-				else
-					--print("checks didnt pass")
 				end
 			end
 			--print("waiting")
 		end)
+		repeat
+			task.wait(waittime)
+			doSlapAnim = true
+		until not cb
 		warn("loop started")
 	else
 		endLoop("aura")
@@ -281,7 +294,7 @@ lplr.CharacterAdded:Connect(function()
 				repeat task.wait() until not ragdoll.Value or lplr.Character.Torso == nil
 				lplr.Character.Torso.Anchored = false
 				donerag = true
-			elseif velomode == "TP" then
+			elseif velomode == "Legit" then
 				task.wait(1)
 				repeat task.wait() until not ragdoll.Value
 				lplr.Character.HumanoidRootPart.CFrame = lplr.Character.HumanoidRootPart.CFrame * CFrame.new(0,4,-2)
@@ -333,6 +346,113 @@ m2:NewToggle("SpeedAutoJump","",function(cb)
 		autoj = true
 	else
 		autoj = false
+	end
+end)
+local nasv
+m2:NewToggle("Strafe","",function(cb)
+	if cb then
+		doLoop("speed2",function()
+			for i,v in pairs(lplr.Character:GetChildren()) do
+				if v:IsA("BasePart") then
+					--v.Anchored = false
+				end
+			end
+			nasv = lplr.Character.Humanoid.WalkSpeed
+			if lplr.Character.Humanoid.FloorMaterial == Air then
+				nasv = lplr.Character.Humanoid.WalkSpeed + 2
+			end
+			local newvelo = lplr.Character.Humanoid.MoveDirection * nasv
+			lplr.Character.HumanoidRootPart.Velocity = Vector3.new(newvelo.X, lplr.Character.HumanoidRootPart.Velocity.Y, newvelo.Z)
+			if autoj and (lplr.Character.Humanoid.FloorMaterial ~= Enum.Material.Air) and lplr.Character.Humanoid.MoveDirection ~= Vector3.zero then
+				if realjump then lplr.Character.Humanoid:ChangeState(Enum.HumanoidStateType.Jumping) else lplr.Character.HumanoidRootPart.Velocity = Vector3.new(lplr.Character.HumanoidRootPart.Velocity.X, jumpheight, lplr.Character.HumanoidRootPart.Velocity.Z) end
+			end
+		end)
+	else
+		endLoop("speed2")
+	end
+end)
+m2:NewToggle("AutoDodge","",function(cb)
+	if cb then
+		dodge = true
+	else
+		dodge = false
+	end
+end)
+-- abilites
+a2:NewToggle("SpamSpace","",function(cb)
+	if cb then
+		doLoop("ss",function()
+			game:GetService("ReplicatedStorage"):WaitForChild("ZeroGSound"):FireServer()
+		end)
+	else
+		endLoop("ss")
+	end
+end)
+a2:NewToggle("AntiTimeStop","",function(cb)
+	if cb then
+		doLoop("ats",function()
+			for i,v in pairs(lplr.Character:GetChildren()) do
+				if v:IsA("BasePart") and donerag then
+					v.Anchored = false
+				end
+			end
+		end)
+	else
+		endLoop("ats")
+	end
+end)
+local gdelay = 25
+a2:NewSlider("GoldenDelay","",500,1,function(cb)
+	gdelay = cb
+end)
+local gt = 0
+a2:NewToggle("GoldenGodmode","",function(cb)
+	if cb then
+		doLoop("gg",function()
+			gt += 1
+			if gt >= gdelay then
+				local args = {
+					[1] = true
+				}
+				game:GetService("ReplicatedStorage"):WaitForChild("Goldify"):FireServer(unpack(args))
+				gt = 0
+			end
+		end)
+	else
+		endLoop("gg")
+	end
+end)
+local ard = 6
+local doRev = false
+a2:NewToggle("AutoReverse","",function(cb)
+	if cb then
+		doLoop("ar",function()
+			if glove() == "Reverse" then
+				if doRev then
+					game:GetService("ReplicatedStorage"):WaitForChild("ReverseAbility"):FireServer()
+					doRev = false
+				end
+			end
+		end)
+		repeat
+			task.wait(ard)
+			doRev = true
+		until not cb
+	else
+		endLoop("ar")
+	end
+end)
+a2:NewToggle("AntiRockKill","",function(cb)
+	if cb then
+		doLoop("antirk",function()
+			for i,v in pairs(workspace:GetDescendants()) do
+				if v.Name == "rock" then
+					v:Destroy()
+				end
+			end
+		end)
+	else
+		endLoop("antirk")
 	end
 end)
 -- gloves
